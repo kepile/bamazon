@@ -26,6 +26,8 @@ var user = "";
 
  
 function start(){
+	console.log("\n          BAMAZON MANAGER INVENTORY CONTROL");
+	console.log("_________________________________________________________\n");
 	// Perform initial query to get unique department list
    connection.query('SELECT DISTINCT department_name FROM homeproducts ', function (error, results, fields) {
 	  if (error) console.log(" \n error retrieving departments");    
@@ -44,6 +46,12 @@ function start(){
 			name: "user",
 	        type: "input",
 	         message: "\n What is your user id?",
+	         validate: function(value){
+				if (value.trim() === ""){
+					return false;
+				}
+				return true;
+	         }
 
         },
 		{
@@ -106,6 +114,9 @@ function LogFile(file){
 // function that routes program based in inquiry responses about what 
 // activity the user wants to do
 function activity(){
+		console.log("\n                     Main Menu");
+	console.log("_________________________________________________________\n");
+
 	// prompt user on activity to do
 	inquirer.prompt([
 
@@ -233,6 +244,12 @@ function addInventory(){
 				console.log("\n No products found in this department.");
 				activity();		
 			} 
+			// create an array of valid item_no for selected department.
+			// this will be used for validation during inquirer
+			var validitem = [0];
+			for (var i = 0; i<results.length; i++){
+				validitem.push(results[i].item_id);
+		    }
 
 			console.log("\n");
 			// Ask user to select the product to change
@@ -244,25 +261,16 @@ function addInventory(){
 			     validate: function(value) {
 			     	// validate a number was received that is positive and 
 			     	// exists in the table displayed/returned query
-			         if (isNaN(value) === false &&  value>=0) {
-			         	var i = 0;
-			         	do { //compare the id in results table with the value input by user
-			         		if (results[i].item_id = value){ 
-			         			//return to inquirer function indicating that value is valid
-						        return true;
-						    }
-				        } //perform the compare 1x then check conditions below
-				          //continue checking above if stmt until value is found or 
-				          // there are no more ids in the table to check
-						while (results[i].item_id != value && i<results.length);
-			         }	  
-         			//return to inquirer function indicating that value is NOT valid
-				     return false;
-			      }
+			        if (isNaN(value) === false && 
+				 	validitem.indexOf(parseInt(value)) >= 0) {
+	         	        return true;
+				    }
+				    return false;
+			      } 
 				}
 			]).then(function(Invans){
 				if (Invans.itemchange  < 1){
-					// If usered a 0, they exited inventory function 
+					// If user entered a 0, they exited inventory function 
 					// and return to select another activity
 					activity();
 				} else
@@ -356,6 +364,12 @@ function addProduct(){
 			name: "product",
 	        type: "input",
 	        message: "\n Please enter the name of the product to be added:",
+	        validate: function(value){
+	        	if (value.trim() === ""){
+	        		return false
+	        	}
+	        	 return true
+	        }
 		},
 		{
 			name: "price",
@@ -389,38 +403,56 @@ function addProduct(){
 	    }
 
 	]).then(function(ans){
-		// ParamArr is an object that can be passed to functions
-		// This object holds all the information required to update
-		// the db and write a log file
-		var ParamArr = {product: ans.product,
-						price: ans.price, 
-						Qty: ans.qty,
-					    depart: ""};
-// If the user signed in under ALL departments, prompt user for
-// what department the product should have
-// the var departmentArr is defined when user signs in
-		if (displayDept	=== 'ALL'){
-			inquirer.prompt([
-			{
-				name: "department",
-				type: "rawlist",
-				message: "Select the department: ",
-				choices: departmentArr
-			}
-			]).then(function(answer){
-				// store the department into the object
-				ParamArr.depart = answer.department;
+	  connection.query('SELECT product_name	 FROM homeproducts ', function (error, results, fields) {
+		  if (error) console.log(" \n error retrieving departments");    
+			// ParamArr is an object that can be passed to functions
+			// This object holds all the information required to update
+			// the db and write a log file
+		  var i=0
+		  var found = false;
+		  while ( i<results.length && !found){
+		  	if (results[i].product_name === ans.product.trim().toLowerCase()){
+			  	// check if the product being added already exists in the db
+			  	found = true;
+		  	}
+		  	i++;
+		  }
+		  if (found){
+			console.log("\n ****** This product already exists ****** ");
+		  	nextStep();
+	  	  } else
+	  	  {
+			var ParamArr = {product: ans.product.trim().toLowerCase(),
+							price: ans.price, 
+							Qty: ans.qty,
+						    depart: ""};
+			// If the user signed in under ALL departments, prompt user for
+			// what department the product should have
+			// the var departmentArr is defined when user signs in
+			if (displayDept	=== 'ALL'){
+				inquirer.prompt([
+				{
+					name: "department",
+					type: "rawlist",
+					message: "Select the department: ",
+					choices: departmentArr
+				}
+				]).then(function(answer){
+					// store the department into the object
+					ParamArr.depart = answer.department;
+					// call function to add product to db
+					addtoDB(ParamArr);
+				})
+			} else
+			{ 
+				// else if ALL was not selected, store in obj the department input at the start 
+				ParamArr.depart = displayDept;	
 				// call function to add product to db
 				addtoDB(ParamArr);
-			})
-		} else
-		{ 
-			// else if ALL was not selected, store in obj the department input at the start 
-			ParamArr.depart = displayDept;	
-			// call function to add product to db
-			addtoDB(ParamArr);
-		}
-	});
+			}
+		};
+	  });
+	})
 }
 
 
@@ -533,7 +565,7 @@ function confirmChange( ParamArr, callbackfunc){
 // create constructor for the log file
 // a new file is created each day by basing the name on the date
 // the date is retrieved using npm date-format package
-var log = new LogFile('manager' + format.asString('yyyy_MM_dd') + '.log');
+var log = new LogFile('manager_' + format.asString('yyyy_MM_dd') + '.log');
 
 // establish a connection to the database
 connection.connect(function(err){

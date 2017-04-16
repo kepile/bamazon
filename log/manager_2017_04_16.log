@@ -1,0 +1,7 @@
+{"activity":"log in","user":"test","department":"bathroom","date":"02:57:03.378"}
+{"activity":"log out","user":"test","date":"02:57:40.934"}
+{"activity":"log in","user":"test","department":"kitchen","date":"03:00:33.676"}
+{"activity":"Inventory Update","user":"test","date":"03:01:50.915","product_name":"dish","current_inventory":25,"new_inventory":"27","result":true}
+{"activity":"log out","user":"test","date":"03:03:35.274"}
+{"activity":"log in","user":"TEST","department":"bedroom","date":"03:04:00.067"}
+{"activity":"log out","user":"TEST","date":"03:07:20.359"}

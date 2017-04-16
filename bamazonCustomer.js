@@ -16,8 +16,9 @@ var purchase = [];
 
  
  // beginning menu for customer
-function start(){
-	console.log("**************Welcome to Bamazon*********************** \n")
+function start(purchase){
+	console.log("\n ------------------- Welcome to Bamazon ------------------- \n")
+
 	// if an item has been added to the purchase array, 
 	// add option to checkout to the menu choices 
 	if (purchase.length > 0){
@@ -40,7 +41,7 @@ function start(){
 		]).then(function (answer) {
 		    
 		    if (answer.action === "Add item to basket") {
-			    addItem();
+			    addItem(purchase);
 			} else  if (answer.action === "Check out"){
 				checkout();
 			} else
@@ -52,12 +53,23 @@ function start(){
 	}
 
 // allow customer to add items ot "basket"/purchase array
-function addItem(){
+function addItem(purchase){
+		console.log("\n -------------------  BAMAZON STORE -------------------  \n")
+
 	// query db to retrieve all items for sale
 	connection.query('SELECT item_id, product_name, price FROM homeproducts', function (error, results, fields) {
-	  if (error) console.log(" \n error displaying product table");    
+	  if (error) console.log(" \n****  error displaying product table **** ");    
 	// display results in a table
-		 console.table(results);
+		console.table(results);
+		// create an array of valid item ids for validation of input
+		// 0 is included as an exit if customer enters 0
+		var validitem = [0];
+		for (var i = 0; i<results.length; i++){
+			validitem.push(results[i].item_id);
+	    }
+	    
+	    
+		 
 		 // prompt for item to be purchased
 		inquirer.prompt([
 
@@ -68,24 +80,29 @@ function addItem(){
 		     validate: function(value) {
 		     	// check that the answer is a number that is between 0
 		     	// and the number of options in the results
-	         if (isNaN(value) === false && 
-	         	  value>=0 && value <= results.length) {
-			        return true;
+				 if (isNaN(value) === false && 
+				 	validitem.indexOf(parseInt(value)) >= 0) {
+	         	        return true;
+				    }
+				    return false;
 			      }
-			      return false;
-
-		      }
-
-	       }
-		       
+			     
+		}       
 		]).then(function (answers) {
-		    // if the number is the number of product number, check 
-		    // quantity available
-		    if (answers.choice > 0) {
-			    getquant(answers.choice);
-			} else 
+		    // if the number is the number of aproduct number, get
+		    // quantity the customer would like
+		    
+			if (answers.choice > 0){
+		    	getquant(answers.choice, purchase);
+			} else if (answers.choice == 0)
 			{ //else 0 was entered so go back to the menu
-				start();
+				
+				start(purchase);
+
+			} else
+			{
+				console.log("\n   ******* PLEASE ENTER A VALID ID NUMBER ******");
+		    	addItem(purchase);
 			}
 
 		});
@@ -94,15 +111,15 @@ function addItem(){
 
 
 // prompt the user for the quantity they would like to purchase
-function getquant(id){
-
+function getquant(id, purchase){
+	
 		inquirer.prompt([
 	     {
 		    name: "qty",
 	        type: "input",
 	         message: "How many would you like to purchase?",
 		     validate: function(num) {
-		     if (isNaN(num) === false && num>=0) {
+		     if (isNaN(num) === false && num>0) {
 		     	return true;
 		     	}
 		     return false;
@@ -111,16 +128,16 @@ function getquant(id){
 		]).then(function(ans){
 		// retrieve quantity available from the db
 		   connection.query('SELECT * FROM homeproducts where item_id =?', [id], function (error, results, fields) {
-			  if (error) console.log("error checking stock level for product"); 
+			  if (error) console.log("**** error checking stock level for product **** "); 
 			  var qty = parseInt(ans.qty);
 			  
 			  // check if there is enough stock to fill the order
 			  if (results[0].stock_quantity < qty){
 			  	// if stock in db is less than quantity being purchased
 			  	// send error to console
-			  	console.log("\n Insufficient stock to fill this quantity. Current stock level is " + results[0].stock_quantity + ". Please select a different quantity.");
+			  	console.log("\n***** Insufficient stock to fill this quantity. Current stock level is " + results[0].stock_quantity + ". Please select a different quantity. **** ");
 				// return to get new quantity
-				 getquant(id);
+				 getquant(id, purchase);
 			  } else
 			  { //else enough stock is available to fill order
 			  	// create an item_no for the order by getting number of items
@@ -129,8 +146,10 @@ function getquant(id){
 			  	// create a constructor and add the item to purchase Array
 			  	purchase.push( new itemConstructor(item_no, results[0].product_name, 
 			  		results[0].price, qty, results[0].price*qty));
-			  	// call function to confirm basket
-			    confirmItem(purchase);
+			  	console.log("\n");
+			  	console.table(purchase);
+			  	// call function to confirm basket with the callback function start as a  parameter 
+			    confirmItem(purchase, start);
 			  };
 			  
 		 	}); 
@@ -138,10 +157,9 @@ function getquant(id){
 	}
 
 // confirm items in basket
-function confirmItem(purchase){
+function confirmItem(purchase, callbackfunc){
 	// display items in basket/purchase array
-	console.log("\n");
-  	console.table(purchase);
+
   	inquirer.prompt(
 		{
 			name: "confirm",
@@ -153,15 +171,17 @@ function confirmItem(purchase){
 
 		if(confirmAns.confirm === "Yes"){
 			// if items in basket are ok, go back to top menu for next steps
-			start();
+			callbackfunc(purchase);
 		  } else if (confirmAns.confirm === "Empty Basket") {
 		  	// else if emptying items in basket
 		  	// empty the purchase array and return to top menu
+
 		  	purchase = [];
-		  	start();
+		  
+		  	start(purchase);
 		  } else
 		  { //else call function to allow single items to be removed
-		     removeitem(purchase);
+		     removeitem(purchase, callbackfunc);
 		  }
 		  
   });     
@@ -171,7 +191,7 @@ function confirmItem(purchase){
 
 
 // function to remove items from the basket/purchase array
-function removeitem (purchase){
+function removeitem (purchase, callbackfunc){
 	// prompt for which item to remove
   inquirer.prompt([
     {
@@ -189,7 +209,8 @@ function removeitem (purchase){
 
 		if (ans.delItem == 0){
 			// exit was selected so return to menu to confirm purchase
-			confirmItem(purchase)
+			  	
+				confirmItem(purchase, callbackfunc)
 		} else
 		{   //an item to remove was selected so remove it from the array
 			// get the index of the item by subtracting 1 from the item no
@@ -203,10 +224,12 @@ function removeitem (purchase){
 		    		purchase[i].item_no = i+1;
 		    	}
 		    	// return to menu to confirm basket
-		    	confirmItem(purchase);	
+				console.log("\n");
+			  	console.table(purchase);
+		    	confirmItem(purchase, callbackfunc);	
 		    } else
 		    { //if no other items in the basket, return to main menu
-		    	start();
+		    	start(purchase);
 		    }
 		}
     });
@@ -224,43 +247,46 @@ function checkout(){
 	}
 
 	// display all items and total due 
-	console.log("\n");
+
+	console.log("\n------------------- BAMAZON CHECKOUT ------------------- \N");
 	console.table(purchase);
 	console.log("TOTAL DUE                       " + total + "\n");
+	// confirm itmes in basket.  Has a callback function as a parameter
+	confirmItem(purchase, function(purchase){
+		// Prompt for payment
+		 inquirer.prompt([
+		    {
+			  name: "order",
+			  type: "rawlist",
+		      message: "Please select Pay to process your payment of " + total,
+		      choices: ["Pay", "Continue Shopping", "Exit"]
+				    
+		    }
+			]).then(function(choice){
 
-	// Prompt for payment
-	 inquirer.prompt([
-	    {
-		  name: "order",
-		  type: "rawlist",
-	      message: "Please select Pay to process your payment of " + total,
-	      choices: ["Pay", "Continue Shopping", "Exit"]
-			    
-	    }
-		]).then(function(choice){
-
-			if (choice.order === "Pay"){
-			// Pay was selected: loop thru array of items and update the db
-				for (var i =0; i< purchase.length; i++){
-					// constructor prototype to subtract inventory 
-				    purchase[i].inventory();
+				if (choice.order === "Pay"){
+				// Pay was selected: loop thru array of items and update the db
+					for (var i =0; i< purchase.length; i++){
+						// constructor prototype to subtract inventory 
+					    purchase[i].inventory();
+					}
+					// empty the basket/purchase array
+					purchase = [];
+					console.log("\n **** Thank you for your order! ****  \n");
+					// go to the beginning menu
+					start(purchase);
+				} else if (choice.order === "Continue Shopping")
+				{//call function to add items to basket
+					addItem(purchase);
+				} else
+				{//go back to the main menu
+					start(purchase);
 				}
-				// empty the basket/purchase array
-				purchase = [];
-				console.log("\n Thank you for your order! \n");
-				// go to the beginning menu
-				start();
-			} else if (choice.order === "Continue Shopping")
-			{//call function to add items to basket
-				addItem();
-			} else
-			{//go back to the main menu
-				start;
-			}
 
-				
+					
 			})
-	    };
+	    });
+}
 
 
 // constructor to create items to be purchased
@@ -304,4 +330,4 @@ itemConstructor.prototype.inventory = function(){
 connection.connect(function(err){
 	if (err) throw err;
 });
-start();
+start(purchase);

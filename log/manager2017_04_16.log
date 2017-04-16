@@ -1,0 +1,21 @@
+{"activity":"log in","user":"pile","department":"ALL","date":"01:39:12.863"}
+{"activity":"inventory check","user":"pile","date":"01:39:32.307"}
+{"activity":"log out","user":"pile","date":"01:50:04.554"}
+{"activity":"log in","user":"kathy","department":"kitchen","date":"01:50:27.015"}
+{"activity":"Add Product","user":"kathy","date":"01:51:20.619","product_name":"dish","price":"4.00","inventory":"30","result":true}
+{"activity":"log out","user":"kathy","date":"02:07:26.783"}
+{"activity":"log in","user":"kathy","department":"gardening","date":"02:09:07.934"}
+{"activity":"Add Product","user":"kathy","date":"02:10:17.253","product_name":"soil","price":"4.00","inventory":"4","result":true}
+{"activity":"inventory check","user":"kathy","date":"02:10:28.775"}
+{"activity":"Add Product","user":"kathy","date":"02:12:01.772","product_name":"flowers","price":"12.00","inventory":"5","result":true}
+{"activity":"log out","user":"kathy","date":"02:17:45.986"}
+{"activity":"log in","user":"test","department":"ALL","date":"02:18:13.128"}
+{"activity":"log out","user":"test","date":"02:29:51.239"}
+{"activity":"log in","user":"pile","department":"ALL","date":"02:30:04.432"}
+{"activity":"log in","user":"pile","department":"ALL","date":"02:32:41.766"}
+{"activity":"Add Product","user":"pile","date":"02:33:49.208","product_name":"pillow large","price":"100.00","inventory":"5","result":true}
+{"activity":"log out","user":"pile","date":"02:34:01.173"}
+{"activity":"log in","user":"kathy","department":"kitchen","date":"02:35:38.294"}
+{"activity":"Inventory Update","user":"kathy","date":"02:35:58.901","product_name":"forks","current_inventory":35,"new_inventory":"100","result":true}
+{"activity":"Inventory Update","user":"kathy","date":"02:36:14.396","product_name":"dish","current_inventory":30,"new_inventory":"25","result":true}
+{"activity":"log out","user":"kathy","date":"02:45:34.849"}
